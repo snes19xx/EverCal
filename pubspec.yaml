@@ -1,0 +1,31 @@
+name: ever_cal
+description: A beautiful Material 3 Expressive calendar for Hyprland.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Dependencies used in the code
+  intl: ^0.19.0
+  http: ^1.1.0
+  file_picker: ^6.1.1 
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # The Font Configuration
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Regular.ttf
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700

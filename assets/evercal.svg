@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="32" y="32" width="448" height="448" rx="128" fill="#2d353b" />
+  
+  <path d="M32 160C32 89.29 89.29 32 160 32H352C422.71 32 480 89.29 480 160V180H32V160Z" fill="#3d484f"/>
+  
+  <rect x="128" y="32" width="40" height="80" rx="20" fill="#a7c080"/>
+  <rect x="344" y="32" width="40" height="80" rx="20" fill="#a7c080"/>
+  
+  <text x="256" y="380" font-family="sans-serif" font-weight="bold" font-size="220" text-anchor="middle" fill="#d3c6aa">20</text>
+  
+  <text x="256" y="145" font-family="sans-serif" font-weight="bold" font-size="60" text-anchor="middle" letter-spacing="4" fill="#a7c080">CAL</text>
+</svg>
