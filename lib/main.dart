@@ -9,39 +9,93 @@ void main() {
   runApp(const MyCalendarApp());
 }
 
-class MyCalendarApp extends StatelessWidget {
+class MyCalendarApp extends StatefulWidget {
   const MyCalendarApp({super.key});
 
   @override
+  State<MyCalendarApp> createState() => _MyCalendarAppState();
+}
+
+class _MyCalendarAppState extends State<MyCalendarApp> {
+  // Default to Dark Mode
+  ThemeMode _themeMode = ThemeMode.dark;
+
+  void _toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // --- DARK THEME ---
+    final darkTheme = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      fontFamily: 'Manrope',
+      colorScheme: const ColorScheme.dark(
+        background: Color(0xFF232a2e), // Everforest Hard Dark
+        surface: Color(0xFF2d353b), // Everforest Background
+        surfaceVariant: Color(0xFF3d484f), // Lighter surface
+        onSurfaceVariant: Color(0xFF859289),
+        primary: Color(0xFFa7c080), // Green Accent
+        primaryContainer: Color(0xFF425047), 
+        secondary: Color(0xFFd699b6), // Pink Accent
+        tertiary: Color(0xFF7fbbb3), // Blue Accent
+        onBackground: Color(0xFFd3c6aa), // Foreground text
+        onSurface: Color(0xFFd3c6aa),
+        onPrimary: Color(0xFF2d353b), // Dark text on Green
+        onPrimaryContainer: Color(0xFFd3c6aa),
+        error: Color(0xFFe67e80), // Red
+        outline: Color(0xFF4b565c),
+      ),
+      scaffoldBackgroundColor: const Color(0xFF232a2e),
+      dividerTheme: DividerThemeData(
+        color: const Color(0xFF3d484f).withOpacity(0.5),
+        thickness: 1,
+      ),
+    );
+
+    // --- LIGHT THEME ---
+    final lightTheme = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      fontFamily: 'Manrope',
+      colorScheme: const ColorScheme.light(
+        background: Color(0xFFbec5b2), // bg1
+        surface: Color(0xFFeaedc8),    // bg2
+        surfaceVariant: Color(0xFFf0f2d4), // bg3
+        onSurfaceVariant: Color(0xFF5C6A72), 
+        
+        primary: Color(0xFF8da165), 
+        primaryContainer: Color(0xFFdce3b8), 
+        
+        secondary: Color(0xFFd699b6), 
+        tertiary: Color(0xFF7fbbb3), 
+        
+        onBackground: Color(0xFF1e2326), 
+        onSurface: Color(0xFF1e2326),   
+        
+        onPrimary: Color(0xFFeaedc8),    
+        onPrimaryContainer: Color(0xFF1e2326),
+        
+        error: Color(0xFFe67e80), 
+        outline: Color(0xFF939f91),
+      ),
+      scaffoldBackgroundColor: const Color(0xFFbec5b2), 
+      dividerTheme: DividerThemeData(
+        color: const Color(0xFF939f91).withOpacity(0.5),
+        thickness: 1,
+      ),
+    );
+
     return MaterialApp(
       title: 'EverCal',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        fontFamily: 'Manrope',
-        colorScheme: const ColorScheme.dark(
-          background: Color(0xFF232a2e), // Everforest Hard Dark
-          surface: Color(0xFF2d353b), // Everforest Background
-          surfaceVariant: Color(0xFF3d484f), // Lighter surface
-          onSurfaceVariant: Color(0xFF859289),
-          primary: Color(0xFFa7c080), // Green Accent
-          secondary: Color(0xFFd699b6), // Pink Accent
-          tertiary: Color(0xFF7fbbb3), // Blue Accent
-          onBackground: Color(0xFFd3c6aa), // Foreground text
-          onSurface: Color(0xFFd3c6aa),
-          onPrimary: Color(0xFF2d353b), // Dark text on Green
-          error: Color(0xFFe67e80), // Red
-          outline: Color(0xFF4b565c),
-        ),
-        scaffoldBackgroundColor: const Color(0xFF232a2e),
-        dividerTheme: DividerThemeData(
-          color: const Color(0xFF3d484f).withOpacity(0.5),
-          thickness: 1,
-        ),
-      ),
-      home: const CalendarHome(),
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: _themeMode,
+      home: CalendarHome(onThemeToggle: _toggleTheme, isDarkMode: _themeMode == ThemeMode.dark),
     );
   }
 }
@@ -70,7 +124,14 @@ class CalendarEvent {
 }
 
 class CalendarHome extends StatefulWidget {
-  const CalendarHome({super.key});
+  final VoidCallback onThemeToggle;
+  final bool isDarkMode;
+
+  const CalendarHome({
+    super.key, 
+    required this.onThemeToggle, 
+    required this.isDarkMode
+  });
 
   @override
   State<CalendarHome> createState() => _CalendarHomeState();
@@ -312,10 +373,9 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
       ),
     );
   }
+
   Future<void> _pushToKhal(CalendarEvent event) async {
-     // IMPORTANT: Change 'personal' to your actual calendar name!
-    // Run 'khal printcalendars' in terminal to find the valid name.
-    const calendarName = 'XXXXXXXXXX'; 
+    const calendarName = 'snes@gmail.com'; 
 
     try {
       final startFmt = DateFormat('yyyy-MM-dd HH:mm').format(event.startTime);
@@ -583,14 +643,10 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
       // --- ELASTIC LAYOUT ---
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Breakpoint lowered to 600. 
-          // This forces SIDE-BY-SIDE layout on your 800px floating window.
           final isWide = constraints.maxWidth > 600;
 
           if (isWide) {
-            // WIDE MODE: Side-by-Side with Expanded (Elastic) children.
-            // NO SizedBox heights. NO FittedBox constraints.
-            // It naturally fills available space.
+            // WIDE MODE: Side-by-Side
             return Padding(
               padding: const EdgeInsets.all(24.0),
               child: Row(
@@ -600,7 +656,6 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
                     flex: 7, 
                     child: _buildCard(
                       theme, 
-                      // Calendar Column uses Expanded to fill vertical space
                       Column(
                         children: [
                           _buildHeader(theme, compact: false), 
@@ -614,7 +669,6 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
                     flex: 3, 
                     child: _buildCard(
                       theme, 
-                      // Sidebar uses a LayoutBuilder to handle vertical squish
                       _buildSidebar(theme), 
                       isVariant: true
                     )
@@ -629,7 +683,7 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
               child: Column(
                 children: [
                   SizedBox(
-                    height: 450, // Reduced height for mobile view
+                    height: 450,
                     child: _buildCard(
                       theme, 
                       Column(
@@ -677,6 +731,7 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Month/Year Title
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -684,8 +739,28 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
               Text(DateFormat('yyyy').format(_focusedMonth), style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onBackground.withOpacity(0.5))),
             ],
           ),
+          
+          // Controls
           Row(
             children: [
+              // Theme Toggle (Visible Bubble)
+              Container(
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  onPressed: widget.onThemeToggle,
+                  icon: Icon(
+                    widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                  tooltip: 'Toggle Theme',
+                ),
+              ),
+              
+              // Navigation
               IconButton(onPressed: () => setState(() => _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1)), icon: const Icon(Icons.chevron_left)),
               IconButton(onPressed: () => setState(() => _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1)), icon: const Icon(Icons.chevron_right)),
             ],
@@ -701,16 +776,11 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
     final startingWeekday = firstDayOfMonth.weekday % 7;
     final totalCells = ((daysInMonth + startingWeekday) / 7).ceil() * 7;
     
-    // Using LayoutBuilder to dynamically adjust cell height
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate aspect ratio so rows fit exactly into available height
         final double gridHeight = constraints.maxHeight;
         final double gridWidth = constraints.maxWidth;
-        
-        // 5 rows usually, sometimes 6. Let's assume 6 to be safe.
-        // Aspect Ratio = Width / Height
-        final double cellHeight = (gridHeight - 32) / 6; // -32 for header/padding
+        final double cellHeight = (gridHeight - 32) / 6; 
         final double cellWidth = (gridWidth - 16) / 7;
         final double childAspectRatio = cellWidth / cellHeight;
 
@@ -721,7 +791,7 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
               padding: const EdgeInsets.all(8), physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7, 
-                childAspectRatio: childAspectRatio // DYNAMIC RATIO
+                childAspectRatio: childAspectRatio 
               ),
               itemCount: totalCells,
               itemBuilder: (context, index) {
@@ -732,7 +802,6 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
                 final isToday = date.day == DateTime.now().day && date.month == DateTime.now().month && date.year == DateTime.now().year;
                 final events = _events[DateTime(date.year, date.month, date.day)] ?? [];
                 
-                // Using FittedBox on day numbers to ensure they shrink if cells get tiny
                 return GestureDetector(
                   onTap: () => setState(() => _selectedDate = date),
                   child: Container(
@@ -771,36 +840,54 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Top section (Date & Weather)
-        // Wrapped in Flexible so it can shrink if needed
         Flexible(
           flex: 0,
           child: Container(
-            width: double.infinity, padding: const EdgeInsets.all(24), // Reduced padding slightly
+            width: double.infinity, padding: const EdgeInsets.all(24), 
             decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.colorScheme.outline.withOpacity(0.1)))),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // shrink wrap
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(DateFormat('EEE').format(_selectedDate).toUpperCase(), style: theme.textTheme.displaySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500, letterSpacing: 2.0, fontSize: 24)),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic,
                   children: [
-                    // FittedBox ensures huge date number shrinks if sidebar is narrow
                     Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text(DateFormat('d').format(_selectedDate), style: TextStyle(fontSize: 80, fontWeight: FontWeight.bold, color: theme.colorScheme.onBackground, height: 1.0)))),
                     if (isToday) Container(width: 12, height: 12, margin: const EdgeInsets.only(left: 4), decoration: BoxDecoration(color: theme.colorScheme.error, shape: BoxShape.circle)),
                   ],
                 ),
                 const SizedBox(height: 16),
+                
+                // --- WEATHER CONTAINER ---
                 if (_weather != null) Container(
-                  padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.all(12), 
+                  decoration: BoxDecoration(
+                    // of Dark, use simple Black12. If Light, use Theme Color.
+                    color: theme.brightness == Brightness.dark 
+                        ? Colors.black12 
+                        : theme.colorScheme.primaryContainer, 
+                    borderRadius: BorderRadius.circular(16)
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(_weather!.icon, style: const TextStyle(fontSize: 24)), 
                       const SizedBox(width: 12), 
                       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${_weather!.temp.round()}°C', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)), 
-                        Text(_weather!.description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))
+                        Text(
+                          '${_weather!.temp.round()}°C', 
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold, 
+                            color: theme.colorScheme.onPrimaryContainer
+                          )
+                        ), 
+                        Text(
+                          _weather!.description, 
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant
+                          )
+                        )
                       ])
                     ]
                   )
@@ -810,7 +897,7 @@ class _CalendarHomeState extends State<CalendarHome> with TickerProviderStateMix
           ),
         ),
         
-        // Event List (Takes remaining space)
+        // Event List
         Expanded(
           child: events.isEmpty
             ? Center(child: Text('No Events', style: TextStyle(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5))))
