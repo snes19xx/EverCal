@@ -7,8 +7,8 @@ I built this because I wanted a functional calendar that actually looked good on
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/DARK.png" width="45%" />
-  <img src="screenshots/LIGHT.png" width="45%" />
+  <img src="DARK.png" width="45%" />
+  <img src="LIGHT.png" width="45%" />
 </p>
 
 ## Features
@@ -26,7 +26,4 @@ I built this because I wanted a functional calendar that actually looked good on
 tar -xzvf EverCal-Linux-Installer.tar.gz
 cd EverCal_Installer
 sudo ./install.sh
-## Screenshots
 
-![Dark Mode](DARK.png)
-![Light Mode](LIGHT.png)
