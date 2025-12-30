@@ -6,7 +6,7 @@ I built this because I wanted a functional calendar that actually looked good on
 
 
 [*Note: You need to manually import your ics from google calendar or outlook calendar with the + button*]
-## Screenshots
+## Screenshot
 
 <p align="center">
   <img src="ss.png" width="50%" />
