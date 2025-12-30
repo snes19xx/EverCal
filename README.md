@@ -9,8 +9,7 @@ I built this because I wanted a functional calendar that actually looked good on
 ## Screenshots
 
 <p align="center">
-  <img src="DARK.png" width="45%" />
-  <img src="LIGHT.png" width="45%" />
+  <img src="ss.png" width="50%" />
 </p>
 
 ## Features
