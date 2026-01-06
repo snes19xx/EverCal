@@ -23,15 +23,15 @@ I built this because I wanted a functional calendar that actually looked good on
 
 ## Installation
 
-1.  Download `Installer.tar.gz` from the [Releases](https://github.com/snes19xx/EverCal/releases) page.
+1.  Download `installer.tar.gz` from the [Releases](https://github.com/snes19xx/EverCal/releases) page.
 2.  Extract the archive 
 3.  Run the script based on your needs, `install_wm.sh` if you don't want titlebar (wm mode) or `install_b.sh` if you want titlebar (gnome/kde)
 
 eg:
 
 ```bash
-tar -xzvf Installer.tar.gz
-cd Installer
+tar -xzvf installer.tar.gz
+cd installer
 sudo ./install_Wm.sh
 
 ```
