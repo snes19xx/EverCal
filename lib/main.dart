@@ -549,7 +549,7 @@ class _CalendarHomeState extends State<CalendarHome> {
       lat ??= 43.6617;
       lon ??= -79.3951;
 
-      // 4. Fetch Weather
+      // Fetch Weather
       final url =
           'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&temperature_unit=celsius';
 
