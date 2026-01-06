@@ -9,7 +9,7 @@ I built this because I wanted a functional calendar that actually looked good on
 ## Screenshot
 
 <p align="center">
-  <img src="screenshpts/ss.png" width="50%" />
+  <img src="screenshots/ss.png" width="50%" />
 </p>
 
 ## Features
