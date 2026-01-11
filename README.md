@@ -32,6 +32,6 @@ eg:
 ```bash
 tar -xzvf installer.tar.gz
 cd installer
-sudo ./install_Wm.sh
+sudo ./install_wm.sh
 
 ```
