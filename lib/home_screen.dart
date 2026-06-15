@@ -867,7 +867,7 @@ class _CalendarHomeState extends State<CalendarHome> {
     );
   }
 
-  Future<void> _showAddEventDialog() async {
+  Future<void> _showAddEventDialog({CalendarEvent? existing}) async {
     await showDialog(
       context: context,
       builder: (context) {
@@ -877,11 +877,35 @@ class _CalendarHomeState extends State<CalendarHome> {
               initialSelectedDate: _selectedDate,
               fnv1aHex: _fnv1aHex,
               onSave: _addEvent,
+              existing: existing,
+              onUpdate: _updateManualEvent,
             );
           },
         );
       },
     );
+  }
+
+  // Edit a non-recurring manual event: remove the old instance, add the new one.
+  Future<void> _updateManualEvent(
+      CalendarEvent oldEvent, CalendarEvent newEvent) async {
+    final oldDate = DateTime(oldEvent.startTime.year, oldEvent.startTime.month,
+        oldEvent.startTime.day);
+    final newDate = DateTime(newEvent.startTime.year, newEvent.startTime.month,
+        newEvent.startTime.day);
+
+    _manualEvents[oldDate]?.removeWhere((e) => e.id == oldEvent.id);
+    if (_manualEvents[oldDate]?.isEmpty ?? false) {
+      _manualEvents.remove(oldDate);
+    }
+    _manualEvents.putIfAbsent(newDate, () => []).add(newEvent);
+
+    setState(() {
+      _events = _mergeEventMaps(
+          _mergeEventMaps(_manualEvents, _importedEvents), _khalEvents);
+    });
+
+    _saveManualEventsToDisk();
   }
 
   Future<void> _addEvent(DateTime date, CalendarEvent event) async {
@@ -1139,12 +1163,18 @@ class _CalendarHomeState extends State<CalendarHome> {
 
         buffer.writeln('BEGIN:VEVENT');
         buffer.writeln('UID:${event.id}'); // Save stable ID
-        buffer.writeln('SUMMARY:${event.title}');
-        buffer.writeln('DTSTART:${fmtIcsTime.format(event.startTime)}');
-        buffer.writeln('DTEND:${fmtIcsTime.format(event.endTime)}');
-        if (event.location != null) buffer.writeln('LOCATION:${event.location}');
+        buffer.writeln('SUMMARY:${icsEscape(event.title)}');
+        if (event.allDay) {
+          buffer.writeln('DTSTART;VALUE=DATE:${fmtIcsDate.format(event.startTime)}');
+          buffer.writeln('DTEND;VALUE=DATE:${fmtIcsDate.format(event.endTime)}');
+        } else {
+          buffer.writeln('DTSTART:${fmtIcsTime.format(event.startTime)}');
+          buffer.writeln('DTEND:${fmtIcsTime.format(event.endTime)}');
+        }
+        if (event.location != null)
+          buffer.writeln('LOCATION:${icsEscape(event.location!)}');
         if (event.description != null)
-          buffer.writeln('DESCRIPTION:${event.description}');
+          buffer.writeln('DESCRIPTION:${icsEscape(event.description!)}');
         if (event.rrule != null)
           buffer.writeln('RRULE:${event.rrule}'); // Save Rule
           // Exception Dates
@@ -1254,7 +1284,8 @@ class _CalendarHomeState extends State<CalendarHome> {
     String? currentDescription;
     String? currentUid;
     String? rrule;
-    
+    bool currentAllDay = false;
+
     List<DateTime> currentExDates = []; //
     bool inEvent = false;
 
@@ -1275,9 +1306,10 @@ class _CalendarHomeState extends State<CalendarHome> {
         currentDescription = null;
         currentUid = null;
         rrule = null;
-        
+        currentAllDay = false;
+
         // RESET IT FOR EVERY NEW EVENT
-        currentExDates = []; 
+        currentExDates = [];
         
       } else if (line == 'END:VEVENT' && inEvent) {
         if (currentSummary != null && currentStart != null) {
@@ -1312,6 +1344,7 @@ class _CalendarHomeState extends State<CalendarHome> {
             isGenerated: false,
             exceptionDates: currentExDates,
             isHidden: isMasterExcluded, // MARK HIDDEN IF EXCLUDED
+            allDay: currentAllDay,
           );
 
           if (!baseEvent.startTime.isBefore(localMin) &&
@@ -1332,18 +1365,16 @@ class _CalendarHomeState extends State<CalendarHome> {
           final value = line.substring(colonIndex + 1);
 
           if (keyPart.startsWith('SUMMARY'))
-            currentSummary = value;
-          else if (keyPart.startsWith('DTSTART'))
+            currentSummary = icsUnescape(value);
+          else if (keyPart.startsWith('DTSTART')) {
             currentStart = _parseStrictDate(value);
-          else if (keyPart.startsWith('DTEND'))
+            currentAllDay = isDateOnly(value);
+          } else if (keyPart.startsWith('DTEND'))
             currentEnd = _parseStrictDate(value);
           else if (keyPart.startsWith('LOCATION'))
-            currentLocation = value;
+            currentLocation = icsUnescape(value);
           else if (keyPart.startsWith('DESCRIPTION')) {
-            currentDescription = value
-                .replaceAll('\\n', '\n')
-                .replaceAll('\\,', ',')
-                .replaceAll('\\;', ';');
+            currentDescription = icsUnescape(value);
           } else if (keyPart.startsWith('UID')) {
             currentUid = value;
           } else if (keyPart.startsWith('RRULE')) {
@@ -1562,6 +1593,7 @@ class _CalendarHomeState extends State<CalendarHome> {
               sourceId: original.sourceId,
               rrule: original.rrule,
               isGenerated: true,
+              allDay: original.allDay,
             ),
           );
         }
@@ -1753,6 +1785,19 @@ class _CalendarHomeState extends State<CalendarHome> {
           Row(
             children: [
               IconButton(
+                tooltip: 'Today',
+                onPressed: () {
+                  final now = DateTime.now();
+                  setState(() {
+                    _focusedMonth = _viewMode == CalendarViewMode.month
+                        ? DateTime(now.year, now.month)
+                        : DateTime(now.year, now.month, now.day);
+                    _selectedDate = DateTime(now.year, now.month, now.day);
+                  });
+                },
+                icon: const Icon(Icons.today_outlined),
+              ),
+              IconButton(
                 onPressed: () {
                   setState(() {
                     if (_viewMode == CalendarViewMode.month) {
@@ -1942,6 +1987,11 @@ class _CalendarHomeState extends State<CalendarHome> {
                     event: events[index],
                     onDelete: () =>
                         _deleteEvent(_selectedDate, events[index]),
+                    onEdit: (events[index].source == EventSource.manual &&
+                            (events[index].rrule == null ||
+                                events[index].rrule!.isEmpty))
+                        ? () => _showAddEventDialog(existing: events[index])
+                        : null,
                   ),
                 ),
         ),

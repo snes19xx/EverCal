@@ -1,30 +1,34 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Unit tests for the ICS text helpers and all-day date detection added for
+// escaping, all-day events, and import round-trips. Hard assertions on values.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:google_calendar_app/main.dart';
+import 'package:ever_cal/utils.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('ICS text escaping', () {
+    test('round-trips commas, semicolons, newlines and backslashes', () {
+      const raw = 'Lunch, then meeting; line1\nline2 path C:\\tmp';
+      expect(icsUnescape(icsEscape(raw)), raw);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('escapes a newline as literal \\n (no real line break in output)', () {
+      expect(icsEscape('a\nb'), 'a\\nb');
+      expect(icsEscape('a\nb').contains('\n'), isFalse);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('unescape keeps an escaped backslash before n as two chars', () {
+      expect(icsUnescape('a\\\\nb'), 'a\\nb');
+    });
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  group('isDateOnly', () {
+    test('true for a date-only value', () {
+      expect(isDateOnly('20260101'), isTrue);
+    });
+
+    test('false for a date-time value', () {
+      expect(isDateOnly('20260101T090000'), isFalse);
+    });
   });
 }

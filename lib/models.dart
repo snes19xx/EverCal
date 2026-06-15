@@ -33,6 +33,7 @@ class CalendarEvent {
   final bool isGenerated; // True if this is a repeat instance
   final List<DateTime> exceptionDates; // List of dates to skip
   final bool isHidden; // Hides event in a reccuring event (instead of deleting)
+  final bool allDay; // True for date-only events (no time component)
 
   const CalendarEvent({
     required this.id,
@@ -47,6 +48,7 @@ class CalendarEvent {
     this.isGenerated = false,
     this.exceptionDates = const [],
     this.isHidden = false, // DEFAULT FALSE
+    this.allDay = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -57,6 +59,7 @@ class CalendarEvent {
         'location': location,
         'description': description,
         'rrule': rrule,
+        'allDay': allDay,
       };
 
   factory CalendarEvent.fromJson(Map<String, dynamic> json, String sourceId) {
@@ -70,9 +73,10 @@ class CalendarEvent {
       source: EventSource.imported,
       sourceId: sourceId,
       rrule: json['rrule'],
+      allDay: json['allDay'] == true,
     );
   }
-  
+
   // Helper copyWith
   CalendarEvent copyWith({
     String? id,
@@ -87,6 +91,7 @@ class CalendarEvent {
     bool? isGenerated,
     List<DateTime>? exceptionDates,
     bool? isHidden,
+    bool? allDay,
   }) {
     return CalendarEvent(
       id: id ?? this.id,
@@ -101,6 +106,7 @@ class CalendarEvent {
       isGenerated: isGenerated ?? this.isGenerated,
       exceptionDates: exceptionDates ?? this.exceptionDates,
       isHidden: isHidden ?? this.isHidden,
+      allDay: allDay ?? this.allDay,
     );
   }
 }
