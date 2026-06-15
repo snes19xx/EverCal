@@ -176,12 +176,16 @@ class AddEventDialog extends StatefulWidget {
   final DateTime initialSelectedDate;
   final String Function(String input) fnv1aHex;
   final Function(DateTime, CalendarEvent) onSave;
+  final CalendarEvent? existing; // non-null = edit mode
+  final Function(CalendarEvent oldEvent, CalendarEvent newEvent)? onUpdate;
 
   const AddEventDialog({
     super.key,
     required this.initialSelectedDate,
     required this.fnv1aHex,
     required this.onSave,
+    this.existing,
+    this.onUpdate,
   });
 
   @override
@@ -206,15 +210,34 @@ class _AddEventDialogState extends State<AddEventDialog> {
   late TimeOfDay startTime;
   late DateTime endDate;
   late TimeOfDay endTime;
+  bool isAllDay = false;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    final base = widget.initialSelectedDate;
-    
-    DateTime start = DateTime(base.year, base.month, base.day, now.hour, 0);
-    DateTime end = start.add(const Duration(hours: 1));
+    final existing = widget.existing;
+
+    final DateTime start;
+    final DateTime end;
+    if (existing != null) {
+      titleController.text = existing.title;
+      locationController.text = existing.location ?? '';
+      descriptionController.text = existing.description ?? '';
+      isAllDay = existing.allDay;
+      if (existing.rrule != null && existing.rrule!.isNotEmpty) {
+        final m = RegExp(r'FREQ=([A-Z]+)').firstMatch(existing.rrule!);
+        if (m != null && freqOptions.containsKey(m.group(1))) {
+          selectedFreq = m.group(1);
+        }
+      }
+      start = existing.startTime;
+      end = existing.endTime;
+    } else {
+      final base = widget.initialSelectedDate;
+      start = DateTime(base.year, base.month, base.day, now.hour, 0);
+      end = start.add(const Duration(hours: 1));
+    }
 
     startDate = DateTime(start.year, start.month, start.day);
     startTime = TimeOfDay(hour: start.hour, minute: start.minute);
@@ -254,26 +277,39 @@ class _AddEventDialogState extends State<AddEventDialog> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2040),
     );
-    if (pickedDate != null) {
-      final initialTime = isStart ? startTime : endTime;
-      final pickedTime =
-          await showTimePicker(context: context, initialTime: initialTime);
-      if (pickedTime != null) {
-        setState(() {
-          if (isStart) {
-            startDate = pickedDate;
-            startTime = pickedTime;
-          } else {
-            endDate = pickedDate;
-            endTime = pickedTime;
-          }
-        });
-      }
+    if (pickedDate == null) return;
+
+    if (isAllDay) {
+      setState(() {
+        if (isStart) {
+          startDate = pickedDate;
+        } else {
+          endDate = pickedDate;
+        }
+      });
+      return;
+    }
+
+    if (!context.mounted) return;
+    final initialTime = isStart ? startTime : endTime;
+    final pickedTime =
+        await showTimePicker(context: context, initialTime: initialTime);
+    if (pickedTime != null) {
+      setState(() {
+        if (isStart) {
+          startDate = pickedDate;
+          startTime = pickedTime;
+        } else {
+          endDate = pickedDate;
+          endTime = pickedTime;
+        }
+      });
     }
   }
 
   Widget _buildDateTimeSelector(BuildContext context, String label,
-      DateTime date, TimeOfDay time, VoidCallback onTap) {
+      DateTime date, TimeOfDay time, VoidCallback onTap,
+      {bool allDay = false}) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
@@ -291,8 +327,9 @@ class _AddEventDialogState extends State<AddEventDialog> {
             Row(
               children: [
                 Text(fmtGridDay.format(date)),
-                const SizedBox(width: 8),
-                Container(
+                if (!allDay) const SizedBox(width: 8),
+                if (!allDay)
+                  Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -332,7 +369,8 @@ class _AddEventDialogState extends State<AddEventDialog> {
     );
 
     return AlertDialog(
-      title: const Text('New Event', textAlign: TextAlign.center),
+      title: Text(widget.existing != null ? 'Edit Event' : 'New Event',
+          textAlign: TextAlign.center),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
 
       // CONTENT BOX
@@ -395,20 +433,29 @@ class _AddEventDialogState extends State<AddEventDialog> {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('All day', style: TextStyle(fontSize: 14)),
+                value: isAllDay,
+                onChanged: (v) => setState(() => isAllDay = v),
+              ),
+              const SizedBox(height: 8),
               // ROW: STARTS + ENDS
               Row(
                 children: [
                   Expanded(
                     child: _buildDateTimeSelector(
                         context, 'Starts', startDate, startTime,
-                        () => pickDateTime(true)),
+                        () => pickDateTime(true),
+                        allDay: isAllDay),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildDateTimeSelector(
                         context, 'Ends', endDate, endTime,
-                        () => pickDateTime(false)),
+                        () => pickDateTime(false),
+                        allDay: isAllDay),
                   ),
                 ],
               ),
@@ -434,10 +481,19 @@ class _AddEventDialogState extends State<AddEventDialog> {
         FilledButton(
           onPressed: () {
             if (titleController.text.isEmpty) return;
-            final s = DateTime(startDate.year, startDate.month, startDate.day,
-                startTime.hour, startTime.minute);
-            final e = DateTime(endDate.year, endDate.month, endDate.day,
-                endTime.hour, endTime.minute);
+            final DateTime s;
+            final DateTime e;
+            if (isAllDay) {
+              s = DateTime(startDate.year, startDate.month, startDate.day);
+              e = DateTime(endDate.year, endDate.month, endDate.day);
+              if (e.isBefore(s)) return;
+            } else {
+              s = DateTime(startDate.year, startDate.month, startDate.day,
+                  startTime.hour, startTime.minute);
+              e = DateTime(endDate.year, endDate.month, endDate.day,
+                  endTime.hour, endTime.minute);
+              if (!e.isAfter(s)) return;
+            }
 
             String? rrule;
             if (selectedFreq != null && selectedFreq != 'NONE') {
@@ -445,7 +501,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
             }
 
             final sig =
-                'manual|${titleController.text}|${s.toIso8601String()}|${e.toIso8601String()}|$rrule';
+                'manual|${titleController.text}|${s.toIso8601String()}|${e.toIso8601String()}|$rrule|$isAllDay';
             // Use the passed function for stable hash
             final id = 'man_${widget.fnv1aHex(sig)}';
 
@@ -459,9 +515,14 @@ class _AddEventDialogState extends State<AddEventDialog> {
               source: EventSource.manual,
               sourceId: 'manual',
               rrule: rrule,
+              allDay: isAllDay,
             );
 
-            widget.onSave(s, newEvent);
+            if (widget.existing != null && widget.onUpdate != null) {
+              widget.onUpdate!(widget.existing!, newEvent);
+            } else {
+              widget.onSave(s, newEvent);
+            }
             Navigator.pop(context);
           },
           child: const Text('Save'),
